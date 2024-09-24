@@ -24,6 +24,7 @@
     #profile {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       margin-bottom: 10px;
     }
     #profile img {
@@ -45,21 +46,21 @@
       background-color: #fafafa;
     }
     .message {
+      display: flex;
+      align-items: center;
       margin-bottom: 10px;
     }
-    .message.user {
-      text-align: right;
+    .message img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
     }
-    .message-content {
+    .message .message-content {
       display: inline-block;
       padding: 10px;
       border-radius: 10px;
-    }
-    .message-content.user {
       background-color: #d1e7dd;
-    }
-    .message-content.other {
-      background-color: #f8d7da;
     }
     #message-input-container {
       display: flex;
@@ -80,16 +81,9 @@
       color: white;
       cursor: pointer;
     }
-    #dm-btn {
+    #dm-btn, #mute-btn {
+      margin-top: 10px;
       background-color: #007bff;
-      border: none;
-      padding: 5px 10px;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #mute-btn {
-      background-color: #ffc107;
       border: none;
       padding: 5px 10px;
       color: white;
@@ -101,7 +95,7 @@
 <body>
   <div id="chat-container">
     <div id="profile">
-      <img id="profile-pic" src="" alt="Profile Picture">
+      <img id="profile-pic" src="https://via.placeholder.com/50" alt="Profile Picture">
       <input type="text" id="username" placeholder="Enter your name">
       <button id="mute-btn">Mute</button>
     </div>
@@ -149,27 +143,32 @@
 
     // Handle WebSocket events
     socket.onmessage = function(event) {
-      const messagesDiv = document.getElementById('messages');
-      const newMessage = document.createElement('div');
-      newMessage.classList.add('message', 'other');
-      newMessage.innerHTML = `<span class="message-content other">${event.data}</span>`;
-      messagesDiv.appendChild(newMessage);
+      const messageData = JSON.parse(event.data);
+      displayMessage(messageData.name, messageData.message, messageData.profilePic);
       playSound();
     };
 
-    document.getElementById('send-btn').addEventListener('click', () => {
-      const input = document.getElementById('message-input');
-      const username = document.getElementById('username').value;
+    // Function to display messages
+    function displayMessage(name, message, profilePic) {
+      const messagesDiv = document.getElementById('messages');
+      const newMessage = document.createElement('div');
+      newMessage.classList.add('message');
+      newMessage.innerHTML = `
+        <img src="${profilePic}" alt="Profile Picture">
+        <div class="message-content"><strong>${name}:</strong> ${message}</div>
+      `;
+      messagesDiv.appendChild(newMessage);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
 
-      if (input.value.trim() !== '') {
-        socket.send(`${username}: ${input.value}`);
-        const messagesDiv = document.getElementById('messages');
-        const newMessage = document.createElement('div');
-        newMessage.classList.add('message', 'user');
-        newMessage.innerHTML = `<span class="message-content user">${input.value}</span>`;
-        messagesDiv.appendChild(newMessage);
-        input.value = '';
-        playSound();
+    // Send message
+    document.getElementById('send-btn').addEventListener('click', () => {
+      sendMessage();
+    });
+
+    document.getElementById('message-input').addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        sendMessage();
       }
     });
 
@@ -187,13 +186,35 @@
       }
     });
 
+    // Send message function
+    function sendMessage() {
+      const input = document.getElementById('message-input');
+      const username = document.getElementById('username').value;
+      const profilePic = document.getElementById('profile-pic').src;
+
+      if (input.value.trim() !== '') {
+        const messageData = {
+          name: username,
+          message: input.value,
+          profilePic: profilePic
+        };
+        socket.send(JSON.stringify(messageData));
+        input.value = '';
+      }
+    }
+
     // Handle DM feature
     document.getElementById('dm-btn').addEventListener('click', () => {
       const recipient = prompt('Enter the recipient\'s username:');
       const message = prompt('Enter your direct message:');
 
       if (recipient && message) {
-        socket.send(`DM to ${recipient}: ${message}`);
+        const messageData = {
+          name: `DM to ${recipient}`,
+          message: message,
+          profilePic: document.getElementById('profile-pic').src
+        };
+        socket.send(JSON.stringify(messageData));
       }
     });
   </script>
