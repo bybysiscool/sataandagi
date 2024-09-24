@@ -25,6 +25,7 @@
             margin: 5px 0;
             display: flex;
             align-items: center;
+            justify-content: space-between;
         }
         .chat-bubble {
             padding: 10px;
@@ -58,6 +59,13 @@
             height: 30px;
             border-radius: 50%;
             margin-right: 10px;
+        }
+        .delete-button {
+            background-color: transparent;
+            border: none;
+            color: #ff4444; /* Red color for delete button */
+            cursor: pointer;
+            margin-left: 10px;
         }
         #inputArea {
             display: flex;
@@ -108,7 +116,7 @@
 <audio id="messageSound" src="message.mp3"></audio> <!-- Ensure message.mp3 is in the same directory -->
 
 <script>
-    const ws = new WebSocket('wss://retrotube.info/ws');
+    const ws = new WebSocket('wss://retrohub.info/ws');
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
@@ -152,7 +160,17 @@
             <strong>${name}:</strong> ${message}
         `;
 
+        // Create delete button
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-button';
+        deleteButton.innerText = '🗑️';
+        deleteButton.onclick = () => {
+            messageDiv.remove(); // Remove message from chat
+            deleteMessageFromStorage(name, message); // Remove from local storage
+        };
+
         messageDiv.appendChild(bubbleDiv);
+        messageDiv.appendChild(deleteButton); // Add delete button to message
         chat.appendChild(messageDiv);
         chat.scrollTop = chat.scrollHeight; // Scroll to the bottom
         messageSound.play(); // Play the sound when a new message is received
@@ -170,6 +188,13 @@
     function saveMessage(name, message) {
         const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
         messages.push({ name, message });
+        localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+
+    // Delete messages from localStorage
+    function deleteMessageFromStorage(name, message) {
+        let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+        messages = messages.filter(msg => msg.name !== name || msg.message !== message); // Filter out deleted message
         localStorage.setItem('chatMessages', JSON.stringify(messages));
     }
 
@@ -226,22 +251,13 @@
 
         // Check if the message is a duplicate or if it's within the cooldown period
         if (messageData.message !== lastMessage && (currentTime - lastMessageTime >= 2000)) {
-            addMessageToChat(messageData.name, messageData.message, false); // Mark as other's message
+            addMessageToChat(messageData.name, messageData.message, false);
             saveMessage(messageData.name, messageData.message); // Save received message to localStorage
-            lastMessageTime = currentTime; // Update last message time for received messages
         }
     };
 
-    // Load messages when the page loads
+    // Load messages on page load
     loadMessages();
-
-    // Add event listener for pressing "Enter" to send messages
-    messageInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            sendButton.click();
-        }
-    });
 </script>
-
 </body>
 </html>
