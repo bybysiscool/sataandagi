@@ -108,8 +108,6 @@
     <button id="sendButton">Send</button>
 </div>
 
-<input type="text" id="dmInput" placeholder="DM (username): message" />
-
 <input type="file" id="profilePictureInput" accept="image/*" />
 <input type="text" id="usernameInput" placeholder="Enter your name" />
 
@@ -120,7 +118,6 @@
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
-    const dmInput = document.getElementById('dmInput');
     const messageSound = document.getElementById('messageSound');
     const profilePictureInput = document.getElementById('profilePictureInput');
     const usernameInput = document.getElementById('usernameInput');
@@ -132,10 +129,25 @@
     usernameInput.value = username;
 
     // Load username and profile picture from localStorage
-    usernameInput.addEventListener('change', () => {
+    function loadProfile() {
+        usernameInput.value = username; // Set initial username value
+        if (profilePicture) {
+            const img = document.createElement('img');
+            img.src = profilePicture;
+            img.className = 'profile-picture';
+            document.body.prepend(img); // Show profile picture at the top
+        }
+    }
+
+    loadProfile();
+
+    // Save username and profile picture
+    function saveProfile() {
         username = usernameInput.value;
         localStorage.setItem('username', username);
-    });
+    }
+
+    usernameInput.addEventListener('change', saveProfile);
 
     profilePictureInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
@@ -217,28 +229,10 @@
         }
     });
 
-    // Send message when Enter key
-
- is pressed
+    // Send message when Enter key is pressed
     messageInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             sendButton.click();
-        }
-    });
-
-    dmInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            const [targetUser, ...messageParts] = dmInput.value.split(':');
-            const message = messageParts.join(':').trim();
-            if (targetUser && message) {
-                const dmData = {
-                    name: targetUser,
-                    message: `DM from ${username}: ${message}`
-                };
-                ws.send(JSON.stringify(dmData));
-                addMessageToChat(targetUser, `DM from ${username}: ${message}`, true);
-                dmInput.value = ''; // Clear DM input
-            }
         }
     });
 
