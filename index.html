@@ -23,6 +23,7 @@
         }
         #inputArea {
             display: flex;
+            margin-bottom: 10px;
         }
         #messageInput {
             flex-grow: 1;
@@ -37,9 +38,17 @@
             color: white;
             border-radius: 5px;
             cursor: pointer;
+            margin-left: 10px;
         }
         #sendButton:hover {
             background-color: #ff4081; /* Darker pink on hover */
+        }
+        #dmInput {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
         .message {
             margin: 5px 0;
@@ -62,16 +71,19 @@
     <button id="sendButton">Send</button>
 </div>
 
+<input type="text" id="dmInput" placeholder="DM (username): message" />
+
 <input type="file" id="profilePictureInput" accept="image/*" />
 <input type="text" id="usernameInput" placeholder="Enter your name" />
 
 <audio id="messageSound" src="message.mp3"></audio> <!-- Ensure message.mp3 is in the same directory -->
 
 <script>
-    const ws = new WebSocket('ws://your_websocket_server:8080');
+    const ws = new WebSocket('wss://retrotube.info/ws');
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
+    const dmInput = document.getElementById('dmInput');
     const messageSound = document.getElementById('messageSound');
     const profilePictureInput = document.getElementById('profilePictureInput');
     const usernameInput = document.getElementById('usernameInput');
@@ -81,6 +93,7 @@
 
     usernameInput.value = username;
 
+    // Load username and profile picture from localStorage
     usernameInput.addEventListener('change', () => {
         username = usernameInput.value;
         localStorage.setItem('username', username);
@@ -126,8 +139,8 @@
     }
 
     sendButton.addEventListener('click', () => {
-        const message = messageInput.value;
-        if (message.trim() !== '') {
+        const message = messageInput.value.trim();
+        if (message !== '') {
             const messageData = {
                 name: username,
                 message: message
@@ -136,6 +149,27 @@
             addMessageToChat(username, message);
             saveMessage(username, message); // Save message to localStorage
             messageInput.value = '';
+        }
+    });
+
+    // Handle direct messages
+    dmInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            const dmMessage = dmInput.value.trim();
+            if (dmMessage !== '') {
+                const [recipient, ...messageParts] = dmMessage.split(':');
+                const message = messageParts.join(':').trim();
+                if (message) {
+                    const dmData = {
+                        name: username,
+                        message: `DM to ${recipient.trim()}: ${message}`
+                    };
+                    ws.send(JSON.stringify(dmData));
+                    addMessageToChat(username, dmData.message);
+                    saveMessage(username, dmData.message); // Save DM to localStorage
+                    dmInput.value = '';
+                }
+            }
         }
     });
 
