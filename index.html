@@ -1,222 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat Room</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #chat-container {
-      width: 80%;
-      max-width: 600px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      margin-top: 20px;
-    }
-    #profile {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    #profile img {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-    }
-    #profile input[type="text"] {
-      width: 70%;
-      padding: 5px;
-      margin-left: 10px;
-    }
-    #messages {
-      height: 300px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-bottom: 10px;
-      background-color: #fafafa;
-    }
-    .message {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .message img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-    .message .message-content {
-      display: inline-block;
-      padding: 10px;
-      border-radius: 10px;
-      background-color: #d1e7dd;
-    }
-    #message-input-container {
-      display: flex;
-      justify-content: space-between;
-    }
-    #message-input {
-      width: 80%;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-    }
-    #send-btn {
-      width: 15%;
-      padding: 10px;
-      background-color: #28a745;
-      border: none;
-      border-radius: 10px;
-      color: white;
-      cursor: pointer;
-    }
-    #dm-btn, #mute-btn {
-      margin-top: 10px;
-      background-color: #007bff;
-      border: none;
-      padding: 5px 10px;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffe6f2; /* Light pink background */
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        #chat {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            background-color: #fff; /* White chat background */
+        }
+        #inputArea {
+            display: flex;
+        }
+        #messageInput {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #sendButton {
+            padding: 10px 20px;
+            border: none;
+            background-color: #ff80ab; /* Pink button */
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #sendButton:hover {
+            background-color: #ff4081; /* Darker pink on hover */
+        }
+        .message {
+            margin: 5px 0;
+        }
+        .profile-picture {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+    </style>
 </head>
 <body>
-  <div id="chat-container">
-    <div id="profile">
-      <img id="profile-pic" src="https://via.placeholder.com/50" alt="Profile Picture">
-      <input type="text" id="username" placeholder="Enter your name">
-      <button id="mute-btn">Mute</button>
-    </div>
 
-    <div id="messages"></div>
+<h1>Chat Room</h1>
+<div id="chat"></div>
 
-    <div id="message-input-container">
-      <input type="text" id="message-input" placeholder="Type a message">
-      <button id="send-btn">Send</button>
-    </div>
+<div id="inputArea">
+    <input type="text" id="messageInput" placeholder="Type your message here..." />
+    <button id="sendButton">Send</button>
+</div>
 
-    <button id="dm-btn">Send DM</button>
-  </div>
+<input type="file" id="profilePictureInput" accept="image/*" />
+<input type="text" id="usernameInput" placeholder="Enter your name" />
 
-  <script>
-    const socket = new WebSocket('wss://retrotube.info/ws/');
-    let isMuted = false;
+<audio id="messageSound" src="message.mp3"></audio> <!-- Ensure message.mp3 is in the same directory -->
 
-    // Load saved username and profile picture
-    document.addEventListener("DOMContentLoaded", () => {
-      const savedName = localStorage.getItem('username');
-      const savedPic = localStorage.getItem('profilePic');
+<script>
+    const ws = new WebSocket('ws://your_websocket_server:8080');
+    const chat = document.getElementById('chat');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const messageSound = document.getElementById('messageSound');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    const usernameInput = document.getElementById('usernameInput');
 
-      if (savedName) {
-        document.getElementById('username').value = savedName;
-      }
-      if (savedPic) {
-        document.getElementById('profile-pic').src = savedPic;
-      }
+    let username = localStorage.getItem('username') || 'User';
+    let profilePicture = localStorage.getItem('profilePicture') || '';
+
+    usernameInput.value = username;
+
+    usernameInput.addEventListener('change', () => {
+        username = usernameInput.value;
+        localStorage.setItem('username', username);
     });
 
-    // Function to play sound
-    function playSound() {
-      if (!isMuted) {
-        const audio = new Audio('message-sound.mp3');
-        audio.play();
-      }
+    profilePictureInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                profilePicture = reader.result;
+                localStorage.setItem('profilePicture', profilePicture);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function addMessageToChat(name, message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.innerHTML = `
+            <img src="${profilePicture}" class="profile-picture" alt="Profile Picture" />
+            <strong>${name}:</strong> ${message}
+        `;
+        chat.appendChild(messageDiv);
+        chat.scrollTop = chat.scrollHeight; // Scroll to the bottom
+        messageSound.play(); // Play the sound when a new message is received
     }
 
-    // Toggle mute/unmute
-    document.getElementById('mute-btn').addEventListener('click', () => {
-      isMuted = !isMuted;
-      document.getElementById('mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+    // Load messages from localStorage
+    function loadMessages() {
+        const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+        messages.forEach(({ name, message }) => {
+            addMessageToChat(name, message);
+        });
+    }
+
+    // Save messages to localStorage
+    function saveMessage(name, message) {
+        const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+        messages.push({ name, message });
+        localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+
+    sendButton.addEventListener('click', () => {
+        const message = messageInput.value;
+        if (message.trim() !== '') {
+            const messageData = {
+                name: username,
+                message: message
+            };
+            ws.send(JSON.stringify(messageData));
+            addMessageToChat(username, message);
+            saveMessage(username, message); // Save message to localStorage
+            messageInput.value = '';
+        }
     });
 
-    // Handle WebSocket events
-    socket.onmessage = function(event) {
-      const messageData = JSON.parse(event.data);
-      displayMessage(messageData.name, messageData.message, messageData.profilePic);
-      playSound();
+    ws.onmessage = (event) => {
+        const messageData = JSON.parse(event.data);
+        addMessageToChat(messageData.name, messageData.message);
+        saveMessage(messageData.name, messageData.message); // Save received message to localStorage
     };
 
-    // Function to display messages
-    function displayMessage(name, message, profilePic) {
-      const messagesDiv = document.getElementById('messages');
-      const newMessage = document.createElement('div');
-      newMessage.classList.add('message');
-      newMessage.innerHTML = `
-        <img src="${profilePic}" alt="Profile Picture">
-        <div class="message-content"><strong>${name}:</strong> ${message}</div>
-      `;
-      messagesDiv.appendChild(newMessage);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+    // Load messages when the page loads
+    loadMessages();
 
-    // Send message
-    document.getElementById('send-btn').addEventListener('click', () => {
-      sendMessage();
+    // Add event listener for pressing "Enter" to send messages
+    messageInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            sendButton.click();
+        }
     });
+</script>
 
-    document.getElementById('message-input').addEventListener('keypress', (event) => {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
-    });
-
-    // Save username and profile picture to localStorage
-    document.getElementById('username').addEventListener('input', () => {
-      const username = document.getElementById('username').value;
-      localStorage.setItem('username', username);
-    });
-
-    document.getElementById('profile-pic').addEventListener('click', () => {
-      const newPic = prompt('Enter the URL of your new profile picture:');
-      if (newPic) {
-        document.getElementById('profile-pic').src = newPic;
-        localStorage.setItem('profilePic', newPic);
-      }
-    });
-
-    // Send message function
-    function sendMessage() {
-      const input = document.getElementById('message-input');
-      const username = document.getElementById('username').value;
-      const profilePic = document.getElementById('profile-pic').src;
-
-      if (input.value.trim() !== '') {
-        const messageData = {
-          name: username,
-          message: input.value,
-          profilePic: profilePic
-        };
-        socket.send(JSON.stringify(messageData));
-        input.value = '';
-      }
-    }
-
-    // Handle DM feature
-    document.getElementById('dm-btn').addEventListener('click', () => {
-      const recipient = prompt('Enter the recipient\'s username:');
-      const message = prompt('Enter your direct message:');
-
-      if (recipient && message) {
-        const messageData = {
-          name: `DM to ${recipient}`,
-          message: message,
-          profilePic: document.getElementById('profile-pic').src
-        };
-        socket.send(JSON.stringify(messageData));
-      }
-    });
-  </script>
 </body>
 </html>
