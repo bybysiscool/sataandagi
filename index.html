@@ -3,43 +3,197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebSocket Chat</title>
+  <title>Chat Room</title>
   <style>
-    #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
-    #message-input { width: 80%; }
-    #send-btn { width: 15%; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #chat-container {
+      width: 80%;
+      max-width: 600px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-top: 20px;
+    }
+    #profile {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    #profile img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+    }
+    #profile input[type="text"] {
+      width: 70%;
+      padding: 5px;
+      margin-left: 10px;
+    }
+    #messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #fafafa;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .message.user {
+      text-align: right;
+    }
+    .message-content {
+      display: inline-block;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .message-content.user {
+      background-color: #d1e7dd;
+    }
+    .message-content.other {
+      background-color: #f8d7da;
+    }
+    #message-input-container {
+      display: flex;
+      justify-content: space-between;
+    }
+    #message-input {
+      width: 80%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+    #send-btn {
+      width: 15%;
+      padding: 10px;
+      background-color: #28a745;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+    }
+    #dm-btn {
+      background-color: #007bff;
+      border: none;
+      padding: 5px 10px;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #mute-btn {
+      background-color: #ffc107;
+      border: none;
+      padding: 5px 10px;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h1>Chat Room</h1>
+  <div id="chat-container">
+    <div id="profile">
+      <img id="profile-pic" src="" alt="Profile Picture">
+      <input type="text" id="username" placeholder="Enter your name">
+      <button id="mute-btn">Mute</button>
+    </div>
 
-  <div id="messages"></div>
-  <input type="text" id="message-input" placeholder="Type your message">
-  <button id="send-btn">Send</button>
+    <div id="messages"></div>
+
+    <div id="message-input-container">
+      <input type="text" id="message-input" placeholder="Type a message">
+      <button id="send-btn">Send</button>
+    </div>
+
+    <button id="dm-btn">Send DM</button>
+  </div>
 
   <script>
-    // Connect to WebSocket server via Cloudflare Tunnel
     const socket = new WebSocket('wss://retrotube.info/ws/');
+    let isMuted = false;
 
-    socket.onmessage = function(event) {
-      const messagesDiv = document.getElementById('messages');
-      const newMessage = document.createElement('div');
-      newMessage.textContent = event.data;
-      messagesDiv.appendChild(newMessage);
-    };
+    // Load saved username and profile picture
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedName = localStorage.getItem('username');
+      const savedPic = localStorage.getItem('profilePic');
 
-    document.getElementById('send-btn').addEventListener('click', function() {
-      const input = document.getElementById('message-input');
-      if (input.value.trim() !== '') {
-        socket.send(input.value);
-        input.value = '';
+      if (savedName) {
+        document.getElementById('username').value = savedName;
+      }
+      if (savedPic) {
+        document.getElementById('profile-pic').src = savedPic;
       }
     });
 
-    document.getElementById('message-input').addEventListener('keypress', function(event) {
-      if (event.key === 'Enter' && this.value.trim() !== '') {
-        socket.send(this.value);
-        this.value = '';
+    // Function to play sound
+    function playSound() {
+      if (!isMuted) {
+        const audio = new Audio('message-sound.mp3');
+        audio.play();
+      }
+    }
+
+    // Toggle mute/unmute
+    document.getElementById('mute-btn').addEventListener('click', () => {
+      isMuted = !isMuted;
+      document.getElementById('mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+    });
+
+    // Handle WebSocket events
+    socket.onmessage = function(event) {
+      const messagesDiv = document.getElementById('messages');
+      const newMessage = document.createElement('div');
+      newMessage.classList.add('message', 'other');
+      newMessage.innerHTML = `<span class="message-content other">${event.data}</span>`;
+      messagesDiv.appendChild(newMessage);
+      playSound();
+    };
+
+    document.getElementById('send-btn').addEventListener('click', () => {
+      const input = document.getElementById('message-input');
+      const username = document.getElementById('username').value;
+
+      if (input.value.trim() !== '') {
+        socket.send(`${username}: ${input.value}`);
+        const messagesDiv = document.getElementById('messages');
+        const newMessage = document.createElement('div');
+        newMessage.classList.add('message', 'user');
+        newMessage.innerHTML = `<span class="message-content user">${input.value}</span>`;
+        messagesDiv.appendChild(newMessage);
+        input.value = '';
+        playSound();
+      }
+    });
+
+    // Save username and profile picture to localStorage
+    document.getElementById('username').addEventListener('input', () => {
+      const username = document.getElementById('username').value;
+      localStorage.setItem('username', username);
+    });
+
+    document.getElementById('profile-pic').addEventListener('click', () => {
+      const newPic = prompt('Enter the URL of your new profile picture:');
+      if (newPic) {
+        document.getElementById('profile-pic').src = newPic;
+        localStorage.setItem('profilePic', newPic);
+      }
+    });
+
+    // Handle DM feature
+    document.getElementById('dm-btn').addEventListener('click', () => {
+      const recipient = prompt('Enter the recipient\'s username:');
+      const message = prompt('Enter your direct message:');
+
+      if (recipient && message) {
+        socket.send(`DM to ${recipient}: ${message}`);
       }
     });
   </script>
