@@ -116,7 +116,7 @@
 <audio id="messageSound" src="message.mp3"></audio> <!-- Ensure message.mp3 is in the same directory -->
 
 <script>
-    const ws = new WebSocket('wss://retrotube.info/ws');
+    const ws = new WebSocket('wss://retrohub.info/ws');
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
@@ -127,7 +127,6 @@
 
     let username = localStorage.getItem('username') || 'User';
     let profilePicture = localStorage.getItem('profilePicture') || '';
-    let lastMessageTime = 0; // Track last message time
 
     usernameInput.value = username;
 
@@ -167,6 +166,9 @@
         deleteButton.onclick = () => {
             messageDiv.remove(); // Remove message from chat
             deleteMessageFromStorage(name, message); // Remove from local storage
+            // Send deletion to the server
+            const deleteData = { name, messageToDelete: message };
+            ws.send(JSON.stringify({ message: `delete:`, ...deleteData }));
         };
 
         messageDiv.appendChild(bubbleDiv);
@@ -194,69 +196,49 @@
     // Delete messages from localStorage
     function deleteMessageFromStorage(name, message) {
         let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-        messages = messages.filter(msg => msg.name !== name || msg.message !== message); // Filter out deleted message
+        messages = messages.filter(msg => !(msg.name === name && msg.message === message));
         localStorage.setItem('chatMessages', JSON.stringify(messages));
     }
 
-    sendButton.addEventListener('click', () => {
-        const message = messageInput.value.trim();
-        const currentTime = Date.now();
+    // Send message on button click or Enter key press
+    sendButton.onclick = () => {
+        sendMessage();
+    };
 
-        // Check cooldown period of 2 seconds
-        if (currentTime - lastMessageTime < 2000) {
-            alert("Please wait before sending another message.");
-            return;
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
         }
+    });
 
-        if (message !== '') {
-            const messageData = {
-                name: username,
-                message: message
-            };
+    function sendMessage() {
+        const message = messageInput.value;
+        if (message.trim() !== '') {
+            const messageData = { name: username, message };
             ws.send(JSON.stringify(messageData));
-            addMessageToChat(username, message, true); // Mark as user's message
             saveMessage(username, message); // Save message to localStorage
-            messageInput.value = '';
-            lastMessageTime = currentTime; // Update last message time
+            messageInput.value = ''; // Clear input field
         }
-    });
-
-    // Handle direct messages
-    dmInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            const dmMessage = dmInput.value.trim();
-            if (dmMessage !== '') {
-                const [recipient, ...messageParts] = dmMessage.split(':');
-                const message = messageParts.join(':').trim();
-                if (message) {
-                    const dmData = {
-                        name: username,
-                        message: `DM to ${recipient.trim()}: ${message}`
-                    };
-                    ws.send(JSON.stringify(dmData));
-                    addMessageToChat(username, dmData.message, true); // Mark as user's message
-                    saveMessage(username, dmData.message); // Save DM to localStorage
-                    dmInput.value = '';
-                    lastMessageTime = Date.now(); // Update last message time for DMs
-                }
-            }
-        }
-    });
+    }
 
     ws.onmessage = (event) => {
         const messageData = JSON.parse(event.data);
-        // Avoid duplication by checking the last message
-        const lastMessage = chat.lastChild ? chat.lastChild.lastChild.innerText : '';
-        const currentTime = Date.now();
-
-        // Check if the message is a duplicate or if it's within the cooldown period
-        if (messageData.message !== lastMessage && (currentTime - lastMessageTime >= 2000)) {
-            addMessageToChat(messageData.name, messageData.message, false);
-            saveMessage(messageData.name, messageData.message); // Save received message to localStorage
+        if (messageData.type === 'delete') {
+            // Handle message deletion
+            const { name, message } = messageData;
+            const messageDivs = Array.from(chat.getElementsByClassName('message'));
+            messageDivs.forEach(div => {
+                const bubble = div.querySelector('.chat-bubble');
+                if (bubble && bubble.innerHTML.includes(`${name}: ${message}`)) {
+                    div.remove(); // Remove the message from chat
+                }
+            });
+        } else {
+            addMessageToChat(messageData.name, messageData.message, messageData.name === username);
         }
     };
 
-    // Load messages on page load
+    // Load previous messages on page load
     loadMessages();
 </script>
 </body>
