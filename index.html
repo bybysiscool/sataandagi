@@ -19,7 +19,7 @@
 
   <script>
     // Connect to WebSocket server via Cloudflare Tunnel
-    const socket = new WebSocket('wss://retrotube.info');
+    const socket = new WebSocket('wss://retrotube.info/ws/');
 
     socket.onmessage = function(event) {
       const messagesDiv = document.getElementById('messages');
