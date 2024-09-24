@@ -214,8 +214,10 @@
     function sendMessage() {
         const message = messageInput.value;
         if (message.trim() !== '') {
+            // Immediately add the message to chat
+            addMessageToChat(username, message, true); // Display it in chat
             const messageData = { name: username, message };
-            ws.send(JSON.stringify(messageData));
+            ws.send(JSON.stringify(messageData)); // Send to server
             saveMessage(username, message); // Save message to localStorage
             messageInput.value = ''; // Clear input field
         }
