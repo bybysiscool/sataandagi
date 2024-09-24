@@ -89,12 +89,12 @@
         #sendButton:hover {
             background-color: #ff4081; /* Darker pink on hover */
         }
-        #usernameInput {
+        #dmInput {
+            width: 100%;
             margin-top: 10px;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            width: 100%;
         }
     </style>
 </head>
@@ -108,26 +108,45 @@
     <button id="sendButton">Send</button>
 </div>
 
+<input type="text" id="dmInput" placeholder="DM (username): message" />
+
+<input type="file" id="profilePictureInput" accept="image/*" />
 <input type="text" id="usernameInput" placeholder="Enter your name" />
 
 <audio id="messageSound" src="message.mp3"></audio> <!-- Ensure message.mp3 is in the same directory -->
 
 <script>
-    const ws = new WebSocket('wss://retrotube.info/ws'); // Adjust to your server address
+    const ws = new WebSocket('wss://retrotube.info/ws');
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
-    const usernameInput = document.getElementById('usernameInput');
+    const dmInput = document.getElementById('dmInput');
     const messageSound = document.getElementById('messageSound');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    const usernameInput = document.getElementById('usernameInput');
 
     let username = localStorage.getItem('username') || 'User';
+    let profilePicture = localStorage.getItem('profilePicture') || '';
+    let lastMessageTime = 0; // Track last message time
 
     usernameInput.value = username;
 
-    // Load username from localStorage
+    // Load username and profile picture from localStorage
     usernameInput.addEventListener('change', () => {
         username = usernameInput.value;
         localStorage.setItem('username', username);
+    });
+
+    profilePictureInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                profilePicture = reader.result;
+                localStorage.setItem('profilePicture', profilePicture);
+            };
+            reader.readAsDataURL(file);
+        }
     });
 
     function addMessageToChat(name, message, isUser) {
@@ -137,24 +156,25 @@
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = `chat-bubble ${isUser ? 'my-message' : 'other-message'}`;
         bubbleDiv.innerHTML = `
-            <img src="profile.png" class="profile-picture" alt="Profile Picture" />
+            <img src="${profilePicture}" class="profile-picture" alt="Profile Picture" />
             <strong>${name}:</strong> ${message}
         `;
 
-        // Create delete button
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'delete-button';
-        deleteButton.innerText = '🗑️';
-        deleteButton.onclick = () => {
-            messageDiv.remove(); // Remove message from chat
-            deleteMessageFromStorage(name, message); // Remove from local storage
-            // Send delete message to server
-            const deleteData = { name, message, type: 'delete' };
-            ws.send(JSON.stringify(deleteData));
-        };
+        // Create delete button only for user's messages
+        if (isUser) {
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-button';
+            deleteButton.innerText = '🗑️';
+            deleteButton.onclick = () => {
+                const deleteData = `delete:${username}:${message}`;
+                ws.send(JSON.stringify({ message: deleteData }));
+                messageDiv.remove(); // Remove message from chat
+                deleteMessageFromStorage(username, message); // Remove from local storage
+            };
+            bubbleDiv.appendChild(deleteButton); // Add delete button to message
+        }
 
         messageDiv.appendChild(bubbleDiv);
-        messageDiv.appendChild(deleteButton); // Add delete button to message
         chat.appendChild(messageDiv);
         chat.scrollTop = chat.scrollHeight; // Scroll to the bottom
         messageSound.play(); // Play the sound when a new message is received
@@ -183,44 +203,61 @@
     }
 
     sendButton.addEventListener('click', () => {
-        sendMessage();
-    });
-
-    messageInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            sendMessage();
-        }
-    });
-
-    function sendMessage() {
         const message = messageInput.value.trim();
         if (message !== '') {
             const messageData = {
                 name: username,
-                message
+                message: message
             };
-            ws.send(JSON.stringify(messageData)); // Send to server
+            ws.send(JSON.stringify(messageData));
             addMessageToChat(username, message, true); // Mark as user's message
             saveMessage(username, message); // Save message to localStorage
-            messageInput.value = ''; // Clear input field
+            messageInput.value = '';
+            lastMessageTime = Date.now(); // Update last message time
         }
-    }
+    });
+
+    // Send message when Enter key
+
+ is pressed
+    messageInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            sendButton.click();
+        }
+    });
+
+    dmInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            const [targetUser, ...messageParts] = dmInput.value.split(':');
+            const message = messageParts.join(':').trim();
+            if (targetUser && message) {
+                const dmData = {
+                    name: targetUser,
+                    message: `DM from ${username}: ${message}`
+                };
+                ws.send(JSON.stringify(dmData));
+                addMessageToChat(targetUser, `DM from ${username}: ${message}`, true);
+                dmInput.value = ''; // Clear DM input
+            }
+        }
+    });
 
     ws.onmessage = (event) => {
         const messageData = JSON.parse(event.data);
-        // Handle message deletion
-        if (messageData.type === 'delete') {
+        if (messageData.command === 'delete') {
             const { name, message } = messageData;
-            const messageDivs = Array.from(chat.getElementsByClassName('message'));
-            messageDivs.forEach(div => {
-                const bubble = div.querySelector('.chat-bubble');
-                if (bubble && bubble.innerHTML.includes(`${name}: ${message}`)) {
-                    div.remove(); // Remove the message from chat
+            // Remove the deleted message from the chat
+            const messages = Array.from(chat.children);
+            messages.forEach((messageDiv) => {
+                const bubbleDiv = messageDiv.querySelector('.chat-bubble');
+                if (bubbleDiv && bubbleDiv.innerHTML.includes(`${name}: ${message}`)) {
+                    messageDiv.remove();
+                    deleteMessageFromStorage(name, message); // Remove from local storage
                 }
             });
         } else {
-            addMessageToChat(messageData.name, messageData.message, messageData.name === username);
-            saveMessage(messageData.name, messageData.message); // Save received message to localStorage
+            const { name, message } = messageData;
+            addMessageToChat(name, message, name === username);
         }
     };
 
