@@ -5,7 +5,7 @@ const messageInput = document.getElementById('message-input');
 const attachmentInput = document.getElementById('attachment-input');
 const sendButton = document.getElementById('send-button');
 const messagesDiv = document.getElementById('messages');
-const messageSound = document.getElementById('message-sound');
+const messageSound = document.getElementById('message');
 
 let username = '';
 let profilePicture = '';
@@ -26,7 +26,7 @@ window.onload = () => {
 
 // Function to establish WebSocket connection
 function connectWebSocket() {
-    websocket = new WebSocket('wss://yourdomain.com'); // Use your Cloudflare Tunnel URL
+    websocket = new WebSocket('wss://retrotube.info/ws'); // Use your Cloudflare Tunnel URL
 
     websocket.onopen = () => {
         console.log('Connected to WebSocket server');
