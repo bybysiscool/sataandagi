@@ -10,20 +10,45 @@ const receiveSound = document.getElementById('receive-sound');
 
 let username = '';
 let profilePicture = '';
+let websocket;
 
 // Load user data from local storage
 window.onload = () => {
     username = localStorage.getItem('username') || '';
     profilePicture = localStorage.getItem('profilePicture') || '';
     usernameInput.value = username;
-    // Display profile picture if exists
     if (profilePicture) {
         const img = document.createElement('img');
         img.src = profilePicture;
         img.style.width = '50px';
-        document.querySelector('.header').appendChild(img);
+        document.getElementById('profile-display').appendChild(img);
     }
 };
+
+// Function to establish WebSocket connection
+function connectWebSocket() {
+    websocket = new WebSocket('wss://retrotube.info/ws'); // Use your Cloudflare Tunnel URL
+
+    websocket.onopen = () => {
+        console.log('Connected to WebSocket server');
+    };
+
+    websocket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        addMessageToChat(message);
+    };
+
+    websocket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+
+    websocket.onclose = () => {
+        console.log('WebSocket connection closed');
+    };
+}
+
+// Connect to WebSocket on page load
+connectWebSocket();
 
 setProfileButton.addEventListener('click', () => {
     username = usernameInput.value;
@@ -36,7 +61,8 @@ setProfileButton.addEventListener('click', () => {
             const img = document.createElement('img');
             img.src = profilePicture;
             img.style.width = '50px';
-            document.querySelector('.header').appendChild(img);
+            document.getElementById('profile-display').innerHTML = ''; // Clear previous image
+            document.getElementById('profile-display').appendChild(img);
         };
         reader.readAsDataURL(file);
     }
@@ -45,26 +71,23 @@ setProfileButton.addEventListener('click', () => {
 
 sendButton.addEventListener('click', () => {
     const messageText = messageInput.value;
-    if (!messageText) return;
-    
+    if (!messageText || !websocket || websocket.readyState !== WebSocket.OPEN) return;
+
     const message = {
         username: username,
         text: messageText,
         profilePicture: profilePicture,
-        attachment: attachmentInput.files[0]
+        attachment: attachmentInput.files[0] ? attachmentInput.files[0].name : null // Keep only the file name
     };
 
     sendSound.play();
-    // Here you would send the message to the server via WebSocket
-    // Example: websocket.send(JSON.stringify(message));
+    websocket.send(JSON.stringify(message));
 
-    // Add message to the message div
     addMessageToChat(message);
     messageInput.value = '';
     attachmentInput.value = '';
 });
 
-// Add a function to display received messages
 function addMessageToChat(message) {
     const messageElement = document.createElement('div');
     messageElement.innerHTML = `<strong>${message.username}</strong>: ${message.text}`;
