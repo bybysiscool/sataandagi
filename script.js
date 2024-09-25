@@ -5,11 +5,13 @@ const messageInput = document.getElementById('message-input');
 const attachmentInput = document.getElementById('attachment-input');
 const sendButton = document.getElementById('send-button');
 const messagesDiv = document.getElementById('messages');
-const messageSound = document.getElementById('message');
+const messageSound = document.getElementById('message-sound');
 
 let username = '';
 let profilePicture = '';
 let websocket;
+const userColors = {}; // To store user colors
+let uniqueColorIndex = 0;
 
 // Load user data from local storage
 window.onload = () => {
@@ -19,7 +21,7 @@ window.onload = () => {
     if (profilePicture) {
         const img = document.createElement('img');
         img.src = profilePicture;
-        img.style.width = '50px';
+        img.className = 'profile-pic'; // Set circular class
         document.getElementById('profile-display').appendChild(img);
     }
 };
@@ -64,13 +66,19 @@ setProfileButton.addEventListener('click', () => {
             localStorage.setItem('profilePicture', profilePicture);
             const img = document.createElement('img');
             img.src = profilePicture;
-            img.style.width = '50px';
+            img.className = 'profile-pic'; // Set circular class
             document.getElementById('profile-display').innerHTML = ''; // Clear previous image
             document.getElementById('profile-display').appendChild(img);
         };
         reader.readAsDataURL(file);
     }
     localStorage.setItem('username', username);
+
+    // Assign a unique color to the user
+    if (!userColors[username]) {
+        uniqueColorIndex++;
+        userColors[username] = `hsl(${uniqueColorIndex * 30}, 70%, 80%)`; // Generate a unique color
+    }
 });
 
 sendButton.addEventListener('click', sendMessage);
@@ -94,18 +102,19 @@ function sendMessage() {
     websocket.send(JSON.stringify(message));
     addMessageToChat(message, true); // Add the message to chat bubbles
     messageSound.play(); // Play message sound when a message is sent
-    messageInput.value = '';
-    attachmentInput.value = '';
+    messageInput.value = ''; // Clear input field
+    attachmentInput.value = ''; // Clear attachment input
 }
 
 function addMessageToChat(message, isSender) {
     const messageElement = document.createElement('div');
     messageElement.className = 'bubble ' + (isSender ? 'me' : 'other');
+    messageElement.style.backgroundColor = userColors[message.username]; // Assign color based on username
     messageElement.innerHTML = `<strong>${message.username}</strong>: ${message.text}`;
     if (message.profilePicture) {
         const img = document.createElement('img');
         img.src = message.profilePicture;
-        img.style.width = '30px';
+        img.className = 'profile-pic'; // Set circular class
         messageElement.prepend(img);
     }
     messagesDiv.appendChild(messageElement);
