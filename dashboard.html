@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Welcome to the Dashboard</h1>
+
+    <div id="profileSection">
+        <h2>Your Profile</h2>
+        <p><strong>Username:</strong> <span id="usernameDisplay"></span></p>
+        <p><strong>Registration Date:</strong> <span id="regDateDisplay"></span></p>
+        <img id="profilePicture" src="" alt="Profile Picture" width="100" />
+    </div>
+
+    <div id="friendSection">
+        <h2>Add a Friend</h2>
+        <input type="text" id="friendUsername" placeholder="Friend's Username" />
+        <button id="addFriendButton">Add Friend</button>
+    </div>
+
+    <div id="dmSection">
+        <h2>Direct Messages</h2>
+        <div id="dmList"></div>
+    </div>
+
+    <div id="navLinks">
+        <a href="chat.html">Go to Chat</a>
+        <button id="logoutButton">Logout</button>
+    </div>
+
+    <script>
+        // Retrieve user details from localStorage
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) {
+            alert('Please login to access the dashboard');
+            window.location.href = 'login.html';
+        }
+
+        // Populate profile information
+        document.getElementById('usernameDisplay').textContent = user.username;
+        document.getElementById('regDateDisplay').textContent = user.registrationDate;
+        document.getElementById('profilePicture').src = user.profilePicture || 'default-avatar.png';
+
+        // Add friend functionality
+        document.getElementById('addFriendButton').onclick = () => {
+            const friendUsername = document.getElementById('friendUsername').value;
+
+            fetch('/add-friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user.username, friendUsername })
+            })
+            .then(response => response.text())
+            .then(message => alert(message));
+        };
+
+        // Logout functionality
+        document.getElementById('logoutButton').onclick = () => {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        };
+
+        // Fetch and display DM list
+        fetch(`/dms/${user.username}`)
+        .then(response => response.json())
+        .then(dms => {
+            const dmList = document.getElementById('dmList');
+            dms.forEach(dm => {
+                const dmItem = document.createElement('div');
+                dmItem.textContent = `DM with ${dm.friend}`;
+                dmItem.onclick = () => {
+                    window.location.href = `dm.html?friend=${dm.friend}`;
+                };
+                dmList.appendChild(dmItem);
+            });
+        });
+    </script>
+</body>
+</html>
