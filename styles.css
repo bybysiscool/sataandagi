@@ -25,8 +25,21 @@ body {
     border-radius: 5px;
 }
 
-.messages div {
+.messages .bubble {
+    padding: 10px;
+    border-radius: 15px;
     margin: 5px 0;
+    max-width: 70%;
+    word-wrap: break-word;
+}
+
+.messages .bubble.me {
+    background-color: #dcf8c6;
+    align-self: flex-end;
+}
+
+.messages .bubble.other {
+    background-color: #fff;
 }
 
 .input-area {
