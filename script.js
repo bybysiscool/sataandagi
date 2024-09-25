@@ -36,6 +36,7 @@ function connectWebSocket() {
     websocket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         addMessageToChat(message);
+        receiveSound.play(); // Play receive sound when a message is received
     };
 
     websocket.onerror = (error) => {
@@ -51,7 +52,7 @@ function connectWebSocket() {
 connectWebSocket();
 
 setProfileButton.addEventListener('click', () => {
-    username = usernameInput.value;
+    username = usernameInput.value.trim();
     const file = profilePicInput.files[0];
     if (file) {
         const reader = new FileReader();
@@ -70,7 +71,7 @@ setProfileButton.addEventListener('click', () => {
 });
 
 sendButton.addEventListener('click', () => {
-    const messageText = messageInput.value;
+    const messageText = messageInput.value.trim();
     if (!messageText || !websocket || websocket.readyState !== WebSocket.OPEN) return;
 
     const message = {
@@ -80,7 +81,7 @@ sendButton.addEventListener('click', () => {
         attachment: attachmentInput.files[0] ? attachmentInput.files[0].name : null // Keep only the file name
     };
 
-    sendSound.play();
+    sendSound.play(); // Play send sound when a message is sent
     websocket.send(JSON.stringify(message));
 
     addMessageToChat(message);
@@ -98,5 +99,4 @@ function addMessageToChat(message) {
         messageElement.prepend(img);
     }
     messagesDiv.appendChild(messageElement);
-    receiveSound.play();
 }
