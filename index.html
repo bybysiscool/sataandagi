@@ -12,7 +12,7 @@
             margin: 0;
             padding: 20px;
         }
-        #chat, #dmChat {
+        #chat {
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 10px;
@@ -21,250 +21,135 @@
             margin-bottom: 10px;
             background-color: #fff; /* White chat background */
         }
-        .message {
+        /* Additional styles here */
+        #loginForm, #registerForm, #guestForm {
+            margin-bottom: 20px;
+        }
+        input, button {
             margin: 5px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .chat-bubble {
-            padding: 10px;
-            border-radius: 10px;
-            margin: 5px;
-            max-width: 70%;
-            position: relative;
-        }
-        .my-message {
-            background-color: #ff80ab; /* Pink background for user's messages */
-            color: white;
-            align-self: flex-end;
-        }
-        .other-message {
-            background-color: #f0f0f0; /* Light gray background for others' messages */
-            color: black;
-            align-self: flex-start;
-        }
-        #inputArea, #dmInputArea {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        #messageInput, #dmMessageInput {
-            flex-grow: 1;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            width: calc(100% - 22px); /* Adjust for padding */
         }
-        #sendButton, #dmSendButton {
-            padding: 10px 20px;
-            border: none;
+        #sendButton {
             background-color: #ff80ab; /* Pink button */
             color: white;
-            border-radius: 5px;
             cursor: pointer;
-            margin-left: 10px;
         }
-        #sendButton:hover, #dmSendButton:hover {
-            background-color: #ff4081; /* Darker pink on hover */
-        }
-        .hidden {
-            display: none;
-        }
-        #loginForm, #registerForm, #friendForm {
-            margin-bottom: 20px;
-        }
+        /* Additional styles for chat bubbles, etc. */
     </style>
 </head>
 <body>
 
 <h1>Chat Room</h1>
-<div id="chat"></div>
 
-<div id="loginForm" class="hidden">
+<div id="loginForm">
     <h2>Login</h2>
     <input type="text" id="loginUsername" placeholder="Username" />
     <input type="password" id="loginPassword" placeholder="Password" />
     <button id="loginButton">Login</button>
 </div>
 
-<div id="registerForm" class="hidden">
+<div id="registerForm">
     <h2>Register</h2>
     <input type="text" id="registerUsername" placeholder="Username" />
     <input type="password" id="registerPassword" placeholder="Password" />
     <input type="email" id="registerEmail" placeholder="Email (optional)" />
+    <input type="text" id="registerProfilePicture" placeholder="Profile Picture URL" />
     <button id="registerButton">Register</button>
 </div>
 
-<div id="friendForm" class="hidden">
-    <h2>Add Friend</h2>
-    <input type="text" id="friendUsername" placeholder="Friend's Username" />
-    <button id="addFriendButton">Add Friend</button>
+<div id="guestForm">
+    <h2>Guest Login</h2>
+    <input type="text" id="guestName" placeholder="Choose a name" />
+    <button id="guestButton">Join as Guest</button>
 </div>
 
-<div id="inputArea" class="hidden">
+<div id="chat"></div>
+
+<div id="inputArea" style="display:none;">
     <input type="text" id="messageInput" placeholder="Type your message here..." />
     <button id="sendButton">Send</button>
 </div>
-
-<h2>Direct Messages</h2>
-<div id="dmChat"></div>
-<div id="dmInputArea" class="hidden">
-    <input type="text" id="dmMessageInput" placeholder="Type your DM here..." />
-    <button id="dmSendButton">Send DM</button>
-</div>
-
-<audio id="messageSound" src="message.mp3"></audio> <!-- Ensure message.mp3 is in the same directory -->
 
 <script>
     const ws = new WebSocket('wss://retrotube.info/ws');
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
-    const loginButton = document.getElementById('loginButton');
-    const registerButton = document.getElementById('registerButton');
-    const addFriendButton = document.getElementById('addFriendButton');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const friendForm = document.getElementById('friendForm');
-    const inputArea = document.getElementById('inputArea');
-    const dmChat = document.getElementById('dmChat');
-    const dmInputArea = document.getElementById('dmInputArea');
-    const dmMessageInput = document.getElementById('dmMessageInput');
-    const dmSendButton = document.getElementById('dmSendButton');
-    let currentUser;
 
-    ws.onmessage = (event) => {
-        const messageData = JSON.parse(event.data);
-        if (messageData.type === 'dm') {
-            playMessageSound();
-            displayDMMessage(messageData);
-        } else {
-            displayMessage(messageData);
-        }
-    };
-
-    function displayMessage(messageData) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message';
-        const chatBubble = document.createElement('div');
-        chatBubble.className = 'chat-bubble other-message';
-        chatBubble.innerHTML = `<strong>${messageData.sender}:</strong> ${messageData.message}`;
-        messageDiv.appendChild(chatBubble);
-        chat.appendChild(messageDiv);
-        chat.scrollTop = chat.scrollHeight;
-    }
-
-    function displayDMMessage(messageData) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message';
-        const chatBubble = document.createElement('div');
-        chatBubble.className = 'chat-bubble my-message';
-        chatBubble.innerHTML = `<strong>${messageData.sender}:</strong> ${messageData.message}`;
-        messageDiv.appendChild(chatBubble);
-        dmChat.appendChild(messageDiv);
-        dmChat.scrollTop = dmChat.scrollHeight;
-    }
-
-    function playMessageSound() {
-        const messageSound = document.getElementById('messageSound');
-        messageSound.currentTime = 0; // Reset sound
-        messageSound.play();
-    }
-
-    sendButton.addEventListener('click', () => {
-        const message = messageInput.value;
-        if (message) {
-            const messageData = { sender: currentUser.username, message: message, type: 'chat' };
-            ws.send(JSON.stringify(messageData));
-            messageInput.value = '';
-        }
-    });
-
-    dmSendButton.addEventListener('click', () => {
-        const message = dmMessageInput.value;
-        const receiver = prompt("Enter the username of the user you want to DM:");
-        if (message && receiver) {
-            const messageData = { sender: currentUser.username, receiver: receiver, message: message, type: 'dm' };
-            ws.send(JSON.stringify(messageData));
-            dmMessageInput.value = '';
-        }
-    });
-
-    loginButton.addEventListener('click', () => {
+    // Handle login
+    document.getElementById('loginButton').onclick = () => {
         const username = document.getElementById('loginUsername').value;
         const password = document.getElementById('loginPassword').value;
-        fetch('http://localhost:8080/login', {
+        
+        fetch('/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.userId) {
-                currentUser = data;
-                loginForm.classList.add('hidden');
-                inputArea.classList.remove('hidden');
-                friendForm.classList.remove('hidden');
-                alert("Logged in successfully!");
+            if (data.username) {
+                alert(`Welcome ${data.username}`);
+                // Store user details and show chat
+                setupChat(data.username, data.profilePicture);
             } else {
-                alert("Login failed.");
+                alert('Login failed');
             }
         });
-    });
+    };
 
-    registerButton.addEventListener('click', () => {
+    // Handle registration
+    document.getElementById('registerButton').onclick = () => {
         const username = document.getElementById('registerUsername').value;
         const password = document.getElementById('registerPassword').value;
         const email = document.getElementById('registerEmail').value;
-        fetch('http://localhost:8080/register', {
+        const profilePicture = document.getElementById('registerProfilePicture').value;
+
+        fetch('/register', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password, email }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, email, profilePicture })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.userId) {
-                alert("Registered successfully!");
-                registerForm.classList.add('hidden');
-                loginForm.classList.remove('hidden');
-            } else {
-                alert("Registration failed.");
-            }
-        });
-    });
+        .then(response => response.text())
+        .then(message => alert(message));
+    };
 
-    addFriendButton.addEventListener('click', () => {
-        const friendUsername = document.getElementById('friendUsername').value;
-        if (friendUsername) {
-            fetch('http://localhost:8080/add-friend', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId: currentUser.userId, friendId: friendUsername }), // Ensure you handle friendId correctly
-            })
-            .then(response => response.text())
-            .then(response => {
-                alert(response);
-            });
+    // Handle guest login
+    document.getElementById('guestButton').onclick = () => {
+        const name = document.getElementById('guestName').value;
+        setupChat(name, '');
+    };
+
+    function setupChat(username, profilePicture) {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('guestForm').style.display = 'none';
+        document.getElementById('inputArea').style.display = 'flex';
+        
+        // Additional code for setting up chat
+    }
+
+    // Add other chat functionalities here
+
+    sendButton.onclick = () => {
+        const message = messageInput.value;
+        if (message) {
+            ws.send(JSON.stringify({ message, username }));
+            messageInput.value =
+
+ '';
         }
-    });
+    };
 
-    function showLoginForm() {
-        registerForm.classList.add('hidden');
-        loginForm.classList.remove('hidden');
-    }
-
-    function showRegisterForm() {
-        loginForm.classList.add('hidden');
-        registerForm.classList.remove('hidden');
-    }
-
-    // Initial display
-    showLoginForm();
+    ws.onmessage = (event) => {
+        const messageData = JSON.parse(event.data);
+        const messageElement = document.createElement('div');
+        messageElement.textContent = messageData.message;
+        chat.appendChild(messageElement);
+    };
 </script>
 
 </body>
