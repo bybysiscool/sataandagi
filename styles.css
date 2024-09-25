@@ -6,10 +6,13 @@ body {
 }
 
 .header {
-    display: flex;
-    align-items: center;
-    padding: 10px;
     background-color: #ffcccb;
+    padding: 20px;
+    text-align: center;
+}
+
+.profile {
+    margin-top: 10px;
 }
 
 .messages {
@@ -18,14 +21,24 @@ body {
     padding: 10px;
     background-color: #fff;
     border: 1px solid #ccc;
-    margin: 10px 0;
+    margin: 10px;
+    border-radius: 5px;
 }
 
 .messages div {
     margin: 5px 0;
 }
 
+.input-area {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+}
+
 #message-input, #attachment-input {
     width: calc(100% - 100px);
     margin-right: 10px;
+    padding: 5px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
 }
