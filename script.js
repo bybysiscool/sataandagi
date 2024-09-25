@@ -99,11 +99,13 @@ function sendMessage() {
         attachment: attachmentInput.files[0] ? attachmentInput.files[0].name : null // Keep only the file name
     };
 
+    // Clear input fields after sending the message
+    messageInput.value = ''; // Clear input field
+    attachmentInput.value = ''; // Clear attachment input
+
     websocket.send(JSON.stringify(message));
     addMessageToChat(message, true); // Add the message to chat bubbles
     messageSound.play(); // Play message sound when a message is sent
-    messageInput.value = ''; // Clear input field
-    attachmentInput.value = ''; // Clear attachment input
 }
 
 function addMessageToChat(message, isSender) {
