@@ -28,7 +28,7 @@ window.onload = () => {
 
 // Function to establish WebSocket connection
 function connectWebSocket() {
-    websocket = new WebSocket('wss://retrotube.info/ws'); // Use your Cloudflare Tunnel URL
+    websocket = new WebSocket('wss://yourdomain.com'); // Use your Cloudflare Tunnel URL
 
     websocket.onopen = () => {
         console.log('Connected to WebSocket server');
@@ -92,11 +92,14 @@ function sendMessage() {
     const messageText = messageInput.value.trim();
     if (!messageText || !websocket || websocket.readyState !== WebSocket.OPEN) return;
 
+    const attachmentFile = attachmentInput.files[0];
+    const attachment = attachmentFile ? attachmentFile.name : null; // Get the file name
+
     const message = {
         username: username,
         text: messageText,
         profilePicture: profilePicture,
-        attachment: attachmentInput.files[0] ? attachmentInput.files[0].name : null // Keep only the file name
+        attachment: attachment
     };
 
     // Clear input fields after sending the message
@@ -109,16 +112,27 @@ function sendMessage() {
 }
 
 function addMessageToChat(message, isSender) {
+    // Check if the message is already displayed
+    if (messagesDiv.lastChild && messagesDiv.lastChild.innerText === message.text) {
+        return; // Prevent duplication
+    }
+
     const messageElement = document.createElement('div');
     messageElement.className = 'bubble ' + (isSender ? 'me' : 'other');
     messageElement.style.backgroundColor = userColors[message.username]; // Assign color based on username
     messageElement.innerHTML = `<strong>${message.username}</strong>: ${message.text}`;
+    
+    if (message.attachment) {
+        messageElement.innerHTML += `<br><strong>Attachment:</strong> ${message.attachment}`;
+    }
+    
     if (message.profilePicture) {
         const img = document.createElement('img');
         img.src = message.profilePicture;
         img.className = 'profile-pic'; // Set circular class
         messageElement.prepend(img);
     }
+    
     messagesDiv.appendChild(messageElement);
     messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to the bottom
 }
