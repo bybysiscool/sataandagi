@@ -42,6 +42,8 @@ body {
     margin: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
+    display: flex;
+    flex-direction: column;
 }
 
 .messages .bubble {
@@ -54,12 +56,18 @@ body {
 }
 
 .messages .bubble.me {
-    background-color: #dcf8c6;
+    background-color: #dcf8c6; /* Sender's bubble color */
     align-self: flex-end;
 }
 
 .messages .bubble.other {
-    background-color: #fff;
+    background-color: #fff; /* Other users' bubble color */
+}
+
+.profile-pic {
+    border-radius: 50%; /* Circular profile picture */
+    width: 30px; /* Set the size */
+    height: 30px; /* Set the size */
 }
 
 .input-area {
