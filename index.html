@@ -21,7 +21,6 @@
             margin-bottom: 10px;
             background-color: #fff; /* White chat background */
         }
-        /* Additional styles here */
         #loginForm, #registerForm, #guestForm {
             margin-bottom: 20px;
         }
@@ -37,7 +36,6 @@
             color: white;
             cursor: pointer;
         }
-        /* Additional styles for chat bubbles, etc. */
     </style>
 </head>
 <body>
@@ -93,7 +91,6 @@
         .then(data => {
             if (data.username) {
                 alert(`Welcome ${data.username}`);
-                // Store user details and show chat
                 setupChat(data.username, data.profilePicture);
             } else {
                 alert('Login failed');
@@ -127,29 +124,33 @@
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('guestForm').style.display = 'none';
-        document.getElementById('inputArea').style.display = 'flex';
-        
-        // Additional code for setting up chat
+        document.getElementById('inputArea').style.display = 'block';
+
+        // Send messages
+        sendButton.onclick = () => {
+            const message = messageInput.value;
+            if (message) {
+                ws.send(JSON.stringify({ message, username }));
+                messageInput.value = '';
+            }
+        };
+
+        // Display messages from the server
+        ws.onmessage = (event) => {
+            const messageData = JSON.parse(event.data);
+            if (messageData.type === 'message') {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = `${messageData.username}: ${messageData.message}`;
+                chat.appendChild(messageElement);
+            } else if (messageData.type === 'history') {
+                messageData.messages.forEach((msg) => {
+                    const messageElement = document.createElement('div');
+                    messageElement.textContent = `${msg.username}: ${msg.message}`;
+                    chat.appendChild(messageElement);
+                });
+            }
+        };
     }
-
-    // Add other chat functionalities here
-
-    sendButton.onclick = () => {
-        const message = messageInput.value;
-        if (message) {
-            ws.send(JSON.stringify({ message, username }));
-            messageInput.value =
-
- '';
-        }
-    };
-
-    ws.onmessage = (event) => {
-        const messageData = JSON.parse(event.data);
-        const messageElement = document.createElement('div');
-        messageElement.textContent = messageData.message;
-        chat.appendChild(messageElement);
-    };
 </script>
 
 </body>
