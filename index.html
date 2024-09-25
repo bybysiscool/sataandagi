@@ -3,27 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Application</title>
     <link rel="stylesheet" href="styles.css">
+    <title>Chat App</title>
 </head>
 <body>
-    <div class="header">
-        <h1>Chat Application</h1>
-        <div class="profile">
-            <input type="text" id="username" placeholder="Enter your name" required>
-            <input type="file" id="profile-pic" accept="image/*">
-            <button id="set-profile">Set Profile</button>
-            <div id="profile-display"></div>
-        </div>
-    </div>
-    <div id="messages" class="messages"></div>
-    <div class="input-area">
-        <input type="text" id="message-input" placeholder="Type a message..." required>
-        <input type="file" id="attachment-input" accept="*">
+    <div id="chat-container">
+        <div id="profile-display"></div>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <input type="file" id="profile-pic" accept="image/*" />
+        <button id="set-profile">Set Profile</button>
+        <div id="messages"></div>
+        <input type="text" id="message-input" placeholder="Type a message..." />
+        <input type="file" id="attachment-input" />
         <button id="send-button">Send</button>
     </div>
-    <audio id="message-sound" src="message.mp3" preload="auto"></audio>
-
+    <audio id="message-sound" src="message.mp3"></audio>
     <script src="script.js"></script>
 </body>
 </html>
