@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Messages</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Direct Messages</h1>
+    <div id="dmChat"></div>
+
+    <div id="dmInputArea" style="display:none;">
+        <input type="text" id="dmMessageInput" placeholder="Type your message here..." />
+        <button id="sendDmButton">Send</button>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const friend = urlParams.get('friend');
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !friend) {
+            alert('Please login to access DMs');
+            window.location.href = 'login.html';
+        }
+
+        const ws = new WebSocket('wss://retrotube.info/ws');
+        const dmChat = document.getElementById('dmChat');
+        const dmMessageInput = document.getElementById('dmMessageInput');
+        const sendDmButton = document.getElementById('sendDmButton');
+
+        sendDmButton.onclick = () => {
+            const message = dmMessageInput.value;
+            if (message) {
+                ws.send(JSON.stringify({ message, sender: user.username, receiver: friend }));
+                dmMessageInput.value = '';
+            }
+        };
+
+        ws.onmessage = (event) => {
+            const dmData = JSON.parse(event.data);
+            if (dmData.type === 'dm' && (dmData.sender === user.username || dmData.sender === friend)) {
+                const dmElement = document.createElement('div');
+                dmElement.textContent = `${dmData.sender}: ${dmData.message}`;
+                dmChat.appendChild(dmElement);
+            }
+        };
+    </script>
+</body>
+</html>
