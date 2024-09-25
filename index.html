@@ -3,187 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Room</title>
+    <title>Chat Application</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #ffe6f2; /* Light pink background */
-            color: #333;
+            background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
         }
-        #chat {
-            border: 1px solid #ddd;
+        #chatContainer {
+            background-color: #fff;
+            padding: 20px;
             border-radius: 5px;
-            padding: 10px;
-            height: 400px;
-            overflow-y: scroll;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto;
+        }
+        #messages {
+            max-height: 400px;
+            overflow-y: auto;
             margin-bottom: 10px;
-            background-color: #fff; /* White chat background */
         }
         .message {
-            margin: 5px 0;
+            border-bottom: 1px solid #ddd;
+            padding: 5px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
         }
-        .chat-bubble {
-            padding: 10px;
-            border-radius: 10px;
-            margin: 5px;
-            max-width: 70%;
-            position: relative;
+        .message span {
+            flex-grow: 1;
         }
-        .my-message {
-            background-color: #ff80ab; /* Pink background for user's messages */
-            color: white;
-            align-self: flex-end;
-        }
-        .other-message {
-            background-color: #f0f0f0; /* Light gray background for others' messages */
-            color: black;
-            align-self: flex-start;
-        }
-        #inputArea {
+        .form-container {
             display: flex;
             margin-bottom: 10px;
         }
-        #messageInput {
+        input {
             flex-grow: 1;
             padding: 10px;
+            margin-right: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
         }
-        #sendButton {
-            padding: 10px 20px;
-            border: none;
-            background-color: #ff80ab; /* Pink button */
+        button {
+            padding: 10px;
+            background-color: #ff80ab;
             color: white;
+            border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-left: 10px;
         }
-        #sendButton:hover {
-            background-color: #ff4081; /* Darker pink on hover */
+        button:hover {
+            background-color: #ff4081;
         }
     </style>
 </head>
 <body>
+    <div id="chatContainer">
+        <h2>Chat Application</h2>
+        <div id="messages"></div>
+        <div class="form-container">
+            <input type="text" id="messageInput" placeholder="Type a message..." />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
 
-<h1>Chat Room</h1>
-<div id="chat"></div>
+    <script>
+        const ws = new WebSocket('wss://retrotube.info/ws'); // Change to your WebSocket server URL
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
 
-<div id="inputArea">
-    <input type="text" id="messageInput" placeholder="Type your message here..." />
-    <button id="sendButton">Send</button>
-</div>
-
-<div>
-    <input type="text" id="usernameInput" placeholder="Enter your name" />
-    <input type="password" id="passwordInput" placeholder="Enter your password" />
-    <button id="loginButton">Login</button>
-    <button id="registerButton">Register</button>
-</div>
-
-<script>
-    const ws = new WebSocket('wss://retrotube.info/ws'); // Use your WebSocket URL
-    const chat = document.getElementById('chat');
-    const messageInput = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendButton');
-    const usernameInput = document.getElementById('usernameInput');
-    const passwordInput = document.getElementById('passwordInput');
-
-    let username;
-
-    usernameInput.addEventListener('change', () => {
-        username = usernameInput.value;
-    });
-
-    sendButton.addEventListener('click', () => {
-        const message = messageInput.value.trim();
-        if (message && username) {
-            const messageData = {
-                username: username,
-                message: message,
-                action: 'message'
-            };
-            ws.send(JSON.stringify(messageData));
-            addMessageToChat(username, message, true);
-            messageInput.value = '';
-        }
-    });
-
-    // Send message on pressing Enter
-    messageInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            sendButton.click();
-        }
-    });
-
-    // Load previous messages
-    fetch('/messages')
-        .then(response => response.json())
-        .then(messages => {
-            messages.forEach(({ username, message }) => {
-                addMessageToChat(username, message, false);
-            });
+        // Send message on button click
+        sendButton.addEventListener('click', () => {
+            sendMessage();
         });
 
-    // Add message to chat
-    function addMessageToChat(name, message, isUser) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message';
-        messageDiv.innerHTML = `<span class="${isUser ? 'my-message' : 'other-message'}">${name}: ${message}</span>`;
-        chat.appendChild(messageDiv);
-        chat.scrollTop = chat.scrollHeight; // Scroll to the bottom
-    }
-
-    // Handle incoming messages
-    ws.onmessage = (event) => {
-        const messageData = JSON.parse(event.data);
-        addMessageToChat(messageData.username, messageData.message, false);
-    };
-
-    // User registration
-    document.getElementById('registerButton').addEventListener('click', () => {
-        const username = usernameInput.value;
-        const password = passwordInput.value;
-        fetch('/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success)
-
- {
-                alert('Registration successful!');
-            } else {
-                alert(data.error);
+        // Send message on Enter key
+        messageInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
             }
         });
-    });
 
-    // User login
-    document.getElementById('loginButton').addEventListener('click', () => {
-        const username = usernameInput.value;
-        const password = passwordInput.value;
-        fetch('/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Login successful!');
-                usernameInput.value = data.user.username; // Set username after login
-            } else {
-                alert(data.error);
+        function sendMessage() {
+            const message = messageInput.value;
+            if (message) {
+                const messageData = { type: 'message', content: message, userId: '1' }; // Replace with actual user ID
+                ws.send(JSON.stringify(messageData));
+                messageInput.value = ''; // Clear input after sending
             }
-        });
-    });
-</script>
+        }
+
+        // Receive messages
+        ws.onmessage = (event) => {
+            const msgData = JSON.parse(event.data);
+            if (msgData.type === 'message') {
+                const msgDiv = document.createElement('div');
+                msgDiv.classList.add('message');
+                msgDiv.innerHTML = `<span>${msgData.data.content}</span><button onclick="deleteMessage(${msgData.data.id})">Delete</button>`;
+                messagesDiv.appendChild(msgDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
+            }
+            if (msgData.type === 'delete') {
+                const messageDiv = document.querySelector(`.message[data-id="${msgData.messageId}"]`);
+                if (messageDiv) {
+                    messageDiv.remove();
+                }
+            }
+        };
+
+        // Delete message
+        function deleteMessage(messageId) {
+            const deleteData = { type: 'delete', messageId, userId: '1' }; // Replace with actual user ID
+            ws.send(JSON.stringify(deleteData));
+        }
+    </script>
 </body>
 </html>
