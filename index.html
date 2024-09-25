@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Welcome to the Chat Application</h1>
+
+    <div id="authSection">
+        <h2>Register</h2>
+        <input type="text" id="registerUsername" placeholder="Choose a username" />
+        <input type="password" id="registerPassword" placeholder="Choose a password" />
+        <input type="email" id="registerEmail" placeholder="Optional email" />
+        <input type="file" id="profilePictureUpload" accept="image/*">
+        <button id="registerButton">Register</button>
+        <p id="registerMessage"></p>
+    </div>
+
+    <div id="loginSection">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Enter your username" />
+        <input type="password" id="loginPassword" placeholder="Enter your password" />
+        <button id="loginButton">Login</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <div id="guestSection">
+        <h2>Continue as Guest</h2>
+        <input type="text" id="guestUsername" placeholder="Enter a guest name" />
+        <button id="guestButton">Enter as Guest</button>
+        <p id="guestMessage"></p>
+    </div>
+
+    <script>
+        // Register user
+        document.getElementById('registerButton').onclick = () => {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const email = document.getElementById('registerEmail').value;
+            const profilePictureFile = document.getElementById('profilePictureUpload').files[0];
+
+            if (!username || !password) {
+                document.getElementById('registerMessage').textContent = 'Username and password are required';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            formData.append('email', email || '');
+            if (profilePictureFile) {
+                formData.append('profilePicture', profilePictureFile);
+            }
+
+            fetch('/register', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(message => {
+                document.getElementById('registerMessage').textContent = message;
+                if (message.includes('success')) {
+                    localStorage.setItem('user', JSON.stringify({ username }));
+                    window.location.href = 'dashboard.html';
+                }
+            });
+        };
+
+        // Login user
+        document.getElementById('loginButton').onclick = () => {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                document.getElementById('loginMessage').textContent = 'Please fill in all fields';
+                return;
+            }
+
+            fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    document.getElementById('loginMessage').textContent = 'Invalid login credentials';
+                }
+            });
+        };
+
+        // Guest mode
+        document.getElementById('guestButton').onclick = () => {
+            const guestUsername = document.getElementById('guestUsername').value;
+
+            if (!guestUsername) {
+                document.getElementById('guestMessage').textContent = 'Please enter a guest name';
+                return;
+            }
+
+            localStorage.setItem('guest', guestUsername);
+            window.location.href = 'chat.html';
+        };
+    </script>
+</body>
+</html>
