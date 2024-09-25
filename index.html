@@ -8,15 +8,20 @@
 </head>
 <body>
     <div class="header">
-        <input type="text" id="username" placeholder="Enter your name" required>
-        <input type="file" id="profile-pic" accept="image/*">
-        <button id="set-profile">Set Profile</button>
-        <div id="profile-display"></div>
+        <h1>Chat Application</h1>
+        <div class="profile">
+            <input type="text" id="username" placeholder="Enter your name" required>
+            <input type="file" id="profile-pic" accept="image/*">
+            <button id="set-profile">Set Profile</button>
+            <div id="profile-display"></div>
+        </div>
     </div>
     <div id="messages" class="messages"></div>
-    <input type="text" id="message-input" placeholder="Type a message..." required>
-    <input type="file" id="attachment-input" accept="*">
-    <button id="send-button">Send</button>
+    <div class="input-area">
+        <input type="text" id="message-input" placeholder="Type a message..." required>
+        <input type="file" id="attachment-input" accept="*">
+        <button id="send-button">Send</button>
+    </div>
     <audio id="send-sound" src="send.mp3" preload="auto"></audio>
     <audio id="receive-sound" src="receive.mp3" preload="auto"></audio>
 
