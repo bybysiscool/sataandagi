@@ -28,7 +28,7 @@ window.onload = () => {
 
 // Function to establish WebSocket connection
 function connectWebSocket() {
-    websocket = new WebSocket('wss://yourdomain.com'); // Use your Cloudflare Tunnel URL
+    websocket = new WebSocket('wss://retrotube.info/ws'); // Use your Cloudflare Tunnel URL
 
     websocket.onopen = () => {
         console.log('Connected to WebSocket server');
