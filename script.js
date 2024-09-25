@@ -1,99 +1,44 @@
-const usernameInput = document.getElementById('username');
-const profilePicInput = document.getElementById('profile-pic');
-const setProfileButton = document.getElementById('set-profile');
+const websocket = new WebSocket('ws://localhost:8080'); // Update with your WebSocket server URL
 const messageInput = document.getElementById('message-input');
 const attachmentInput = document.getElementById('attachment-input');
 const sendButton = document.getElementById('send-button');
-const messagesDiv = document.getElementById('messages');
+const chatBox = document.getElementById('chat-box');
 const messageSound = document.getElementById('message-sound');
 
-let username = '';
-let profilePicture = '';
-let websocket;
-const userColors = {}; // To store user colors
-let uniqueColorIndex = 0;
+let username = prompt("Enter your name:");
+let profilePicture = prompt("Enter your profile picture URL:");
 
-// Load user data from local storage
-window.onload = () => {
-    username = localStorage.getItem('username') || '';
-    profilePicture = localStorage.getItem('profilePicture') || '';
-    usernameInput.value = username;
-    if (profilePicture) {
-        const img = document.createElement('img');
-        img.src = profilePicture;
-        img.className = 'profile-pic'; // Set circular class
-        document.getElementById('profile-display').appendChild(img);
+function addMessageToChat(message, isSent) {
+    const messageBubble = document.createElement('div');
+    messageBubble.classList.add('message-bubble', isSent ? 'sent' : 'received');
+    
+    const profilePic = document.createElement('img');
+    profilePic.src = message.profilePicture;
+    profilePic.classList.add('profile-pic');
+    
+    const messageContent = document.createElement('span');
+    messageContent.textContent = `${message.username}: ${message.text}`;
+    
+    if (message.attachment) {
+        const attachmentLink = document.createElement('a');
+        attachmentLink.href = message.attachment;
+        attachmentLink.textContent = ' (Attachment)';
+        attachmentLink.target = '_blank'; // Open in a new tab
+        messageContent.appendChild(attachmentLink);
     }
-};
 
-// Function to establish WebSocket connection
-function connectWebSocket() {
-    websocket = new WebSocket('wss://retrotube.info/ws'); // Use your Cloudflare Tunnel URL
-
-    websocket.onopen = () => {
-        console.log('Connected to WebSocket server');
-    };
-
-    websocket.onmessage = (event) => {
-        try {
-            const message = JSON.parse(event.data);
-            addMessageToChat(message, false);
-            messageSound.play(); // Play message sound when a message is received
-        } catch (error) {
-            console.error('Error parsing message:', error);
-        }
-    };
-
-    websocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
-
-    websocket.onclose = () => {
-        console.log('WebSocket connection closed');
-    };
+    messageBubble.appendChild(profilePic);
+    messageBubble.appendChild(messageContent);
+    chatBox.appendChild(messageBubble);
+    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
 }
-
-// Connect to WebSocket on page load
-connectWebSocket();
-
-setProfileButton.addEventListener('click', () => {
-    username = usernameInput.value.trim();
-    const file = profilePicInput.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            profilePicture = reader.result;
-            localStorage.setItem('profilePicture', profilePicture);
-            const img = document.createElement('img');
-            img.src = profilePicture;
-            img.className = 'profile-pic'; // Set circular class
-            document.getElementById('profile-display').innerHTML = ''; // Clear previous image
-            document.getElementById('profile-display').appendChild(img);
-        };
-        reader.readAsDataURL(file);
-    }
-    localStorage.setItem('username', username);
-
-    // Assign a unique color to the user
-    if (!userColors[username]) {
-        uniqueColorIndex++;
-        userColors[username] = `hsl(${uniqueColorIndex * 30}, 70%, 80%)`; // Generate a unique color
-    }
-});
-
-sendButton.addEventListener('click', sendMessage);
-messageInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-        sendMessage();
-    }
-});
 
 function sendMessage() {
     const messageText = messageInput.value.trim();
     if (!messageText || !websocket || websocket.readyState !== WebSocket.OPEN) return;
 
     const attachmentFile = attachmentInput.files[0];
-    const attachment = attachmentFile ? attachmentFile.name : null; // Get the file name
+    const attachment = attachmentFile ? attachmentFile.name : null; // Send only the file name
 
     const message = {
         username: username,
@@ -106,33 +51,23 @@ function sendMessage() {
     messageInput.value = ''; // Clear input field
     attachmentInput.value = ''; // Clear attachment input
 
-    websocket.send(JSON.stringify(message));
+    websocket.send(JSON.stringify(message)); // Send message as a JSON string
     addMessageToChat(message, true); // Add the message to chat bubbles
     messageSound.play(); // Play message sound when a message is sent
 }
 
-function addMessageToChat(message, isSender) {
-    // Check if the message is already displayed
-    if (messagesDiv.lastChild && messagesDiv.lastChild.innerText === message.text) {
-        return; // Prevent duplication
+sendButton.addEventListener('click', sendMessage);
+messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendMessage();
     }
+});
 
-    const messageElement = document.createElement('div');
-    messageElement.className = 'bubble ' + (isSender ? 'me' : 'other');
-    messageElement.style.backgroundColor = userColors[message.username]; // Assign color based on username
-    messageElement.innerHTML = `<strong>${message.username}</strong>: ${message.text}`;
-    
-    if (message.attachment) {
-        messageElement.innerHTML += `<br><strong>Attachment:</strong> ${message.attachment}`;
-    }
-    
-    if (message.profilePicture) {
-        const img = document.createElement('img');
-        img.src = message.profilePicture;
-        img.className = 'profile-pic'; // Set circular class
-        messageElement.prepend(img);
-    }
-    
-    messagesDiv.appendChild(messageElement);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to the bottom
-}
+websocket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    addMessageToChat(message, false); // Add received message to chat
+};
+
+websocket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
